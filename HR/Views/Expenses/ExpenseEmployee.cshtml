@@ -1,0 +1,303 @@
+﻿@model  HR.Models.ExpensesEmployeeViewModel
+@using SBSModel.Models;
+@using SBSModel.Common;
+@using SBSResourceAPI;
+@using SBSWorkFlowAPI.Constants;
+@{
+    ViewBag.Title = Resource.Engineering_Expenses_Report;
+}
+@{
+    var pcnt = Model.Record_Count / Model.Page_Length;
+    var start = 0;
+    var end = 1;
+    if (Model.Record_Count > 0 & Model.Record_Count % Model.Page_Length > 0)
+    {
+        pcnt += 1;
+    }
+
+    if (Model.Page_No == 1)
+    {
+        start = 1;
+        end = Model.Page_Length;
+    }
+    else if (Model.Page_No > 1)
+    {
+        start = (Model.Page_No - 1) * Model.Page_Length;
+        end = (Model.Page_No) * Model.Page_Length;
+    }
+
+    if (end > Model.Record_Count)
+    {
+        end = Model.Record_Count;
+    }
+}
+@if ((Model.rights != null && Model.rights.Contains(UserSession.RIGHT_A)))
+{
+    <div class="pageheader">
+        <h2>@Resource.Engineering_Expenses_Report<span></span></h2>
+        <div class="breadcrumbs">
+            <ol class="breadcrumb">
+                <li>@Resource.You_Are_Here</li>
+                <li><a href="@Url.Action("index", "Home" )">@Resource.Dash_Board</a></li>
+                <li class="active">@Resource.Engineering_Expenses_Report</li>
+            </ol>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        $(function () {
+            InitDatepicker();
+        });
+    </script>
+
+    <div class="main">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- /tile header -->
+                @if (Model.result != null && Model.result.Code != 0)
+                {
+                    if (Model.result.Code < 0)
+                    {
+                        <div class="alert alert-red">
+                            @UserSession.GetMsg(Model.result.Code, Model.result.Msg, Model.result.Field)
+                        </div>
+                    }
+                    else if (Model.result.Code > 0)
+                    {
+                        <div class="alert alert-success">
+                            @UserSession.GetMsg(Model.result.Code, Model.result.Msg, Model.result.Field)
+                        </div>
+                    }
+                }
+                @using (Html.BeginForm("ExpenseEmployee", "Expenses", FormMethod.Get, new { @class = "form-horizontal", role = "form" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <section class="tile color transparent-black filter">
+                        <div class="tile-header transparent">
+                            <h1 style="cursor:pointer"><strong>@Resource.Apply_Filter</strong></h1>
+                            <div class="controls">
+                                <a href="#" class="minimize filter"><i class="fa fa-search  color-white"></i></a>
+                            </div>
+                        </div>
+                        <div class="tile-body">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <div class="col-sm-12">
+                                            <label for="Year" class="control-label">@Resource.Year</label>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-sm-12">
+                                            <select class="chosen-select chosen-transparent form-control" id="Year" name="Year">
+                                                @if (Model.Yearlst != null)
+                                                {
+                                                    foreach (var row in Model.Yearlst)
+                                                    {
+                                                        if (Model.Year == row)
+                                                        {
+                                                            <option value="@row" selected>@row</option>
+                                                        }
+                                                        else
+                                                        {
+                                                            <option value="@row">@row</option>
+                                                        }
+                                                    }
+                                                }
+                                            </select>
+                                            <div class="validation-error">
+                                                @Html.ValidationMessageFor(m => m.Year)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <div class="col-sm-12">
+                                            <label for="Leave_Type" class="control-label">@Resource.Month</label>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-sm-12">
+                                            <select class="chosen-select chosen-transparent form-control" id="Month" name="Month">
+                                                @if (Model.Monthlst != null)
+                                                {
+                                                    foreach (var row in Model.Monthlst)
+                                                    {
+                                                        if (Model.Month == row)
+                                                        {
+                                                            <option value="@row" selected>@DateUtil.GetFullMonth(row)</option>
+                                                        }
+                                                        else
+                                                        {
+                                                            <option value="@row">@DateUtil.GetFullMonth(row)</option>
+                                                        }
+                                                    }
+                                                }
+                                            </select>
+                                            <div class="validation-error">
+                                                @Html.ValidationMessageFor(m => m.Month)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <div class="col-sm-12">
+                                            <div style="height:30px;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-sm-12">
+                                            <button type="submit" class="btn btn-default">@Resource.Filter</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                }
+                <section class="tile color transparent-black">
+                    <!-- tile header -->
+                    <div class="tile-header transparent">
+                        <h1><strong>@Resource.Engineering_Expenses_Report</strong></h1>
+                        <div class="controls">
+                            <a href="#" class="minimize"><i class="fa fa-chevron-down color-white"></i></a>
+                        </div>
+                    </div>
+                    <!-- /tile header -->
+                    <!-- tile body -->
+                    <div class="tile-body ">
+                        <div class="table-responsive">
+                            <table class="table table-datatable table-custom" id="moduleDataTable">
+                                <thead>
+                                    <tr>
+                                        <th width="250px" class="sort-alpha">@Resource.Employee_Name</th>
+                                        <th class="sort-numeric">@Resource.Year</th>
+                                        <th class="sort-numeric">@Resource.Month</th>
+                                        <th width="150px" class="sort-alpha">@Resource.Duration</th>
+                                        <th class="sort-amount">@Resource.Time_Sheet @Resource.Amount</th>
+                                        <th class="sort-amount">@Resource.Expense @Resource.Amount</th>
+                                        <th width="150px" class="sort-alpha">@Resource.Status</th>
+                                        <th width="110px" class="no-sort">@Resource.Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.TsExList != null)
+                                    {
+                                        var i = 0;
+                                        foreach (var row in Model.TsExList)
+                                        {
+                                            var duration = new TimeSpan();
+                                            var amt = 0M;
+                                            Time_Sheet ts = null;
+                                            if (row.Time_Sheet != null)
+                                            {
+                                                ts = row.Time_Sheet;
+                                                foreach (var dtl in ts.Time_Sheet_Dtl)
+                                                {
+                                                    duration += dtl.Duration.HasValue ? dtl.Duration.Value : new TimeSpan();
+                                                    amt += dtl.Total_Amount.HasValue ? dtl.Total_Amount.Value : 0M;
+                                                }
+                                            }
+
+                                            <tr>
+                                                <td>@ts.Employee_Name</td>
+                                                <td>
+                                                    @row.Year
+                                                </td>
+                                                <td>
+                                                    @DateUtil.GetFullMonth(row.Month)
+                                                </td>
+                                                <td>@duration.Hours @Resource.Hr_S @(duration.Minutes > 0 ? duration.Minutes + " " + Resource.Min_S : "") </td>
+                                                <td class="text-right">
+                                                    @NumUtil.FormatCurrency(row.Ts_Total_Amount, 2)
+                                                </td>
+                                                <td class="text-right">
+                                                    @NumUtil.FormatCurrency(row.Ex_Total_Amount, 2)
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(ts.Cancel_Status) && ts.Cancel_Status != WorkflowStatus.Cancellation_Rejected)
+                                                    {
+                                                        @StatusUtil.Get_Overall_Status(ts.Cancel_Status)
+                                                    }
+                                                    else
+                                                    {
+                                                        if (ts.Overall_Status == WorkflowStatus.Pending || ts.Overall_Status == WorkflowStatus.Approved)
+                                                        {
+                                                            @Resource.Pending
+                                                        }
+                                                        else
+                                                        {
+                                                            @StatusUtil.Get_Overall_Status(ts.Overall_Status)
+                                                        }
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (row != null)
+                                                    {
+                                                        <a data-modal href="@Url.Action("ExpenseEmployeeExport", "Expenses", new { pID = row.TsEx_ID,year = Model.Year, month = Model.Month })" title="@Resource.Print"><i class="fa fa-print fa-2x"></i> </a>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                        i++;
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="10" style="font-size:11px">
+                                            <div class="col-md-4 sm-center nopadding-left">
+                                                <div class="dataTables_info">  Showing @start to @end of @Model.Record_Count entries</div>
+                                            </div><div class="col-md-8 text-right sm-center nopadding-right">
+                                                <div class="dataTables_paginate paging_bootstrap paging_custombootstrap">
+                                                    <ul class=" pagination">
+                                                        @if (Model.Page_No > 1)
+                                                        {
+                                                            <li class="prev">
+                                                                <a href="@Url.Action("ExpenseEmployee", "TimeSheet", new { pno = Model.Page_No - 1,  Month = Model.Month, Year = Model.Year })">@Resource.Previous</a>
+                                                            </li>
+                                                        }
+                                                        else
+                                                        {
+                                                            <li class="prev disabled">
+                                                                <a>@Resource.Previous</a>
+                                                            </li>
+                                                        }
+
+                                                        @for (var i = 1; i <= pcnt; i++)
+                                                        {
+                                                            if (Model.Page_No == i)
+                                                            {
+                                                                <li class="active"><a>@i</a></li>
+                                                            }
+                                                            else
+                                                            {
+                                                                <li><a href="@Url.Action("ExpenseEmployee", "TimeSheet", new { pno = i,  Month = Model.Month, Year = Model.Year })">@i</a></li>
+                                                            }
+                                                        }
+                                                        @if (Model.Page_No < pcnt)
+                                                        {
+                                                            <li class="next next"><a href="@Url.Action("ExpenseEmployee", "TimeSheet", new { pno = Model.Page_No + 1,  Month = Model.Month, Year = Model.Year })">@Resource.Next</a></li>
+                                                        }
+                                                        else
+                                                        {
+                                                            <li class="next disabled"><a>@Resource.Next</a></li>
+                                                        }
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+
+                            </table>
+                        </div>
+                    </div>
+                    <!-- /tile body -->
+                </section>
+
+            </div>
+        </div>
+    </div>
+}
